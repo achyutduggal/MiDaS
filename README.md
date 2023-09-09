@@ -2,7 +2,7 @@
 #### to install
 * create a python3 virtualenv (`python3 -m venv venv`) and start it (`source venv/bin/activate`)
 * install altered_midas dependencies with `pip install -r requirements.txt`
-* run `python setup.py install` (or `python setup.py develop` for developer mode) to install altered_midas as a library
+* run `python setup.py install` (or `python setup.py develop` for developer mode) to install the scripts in MiDaS/altered_midas as a library called "altered_midas"
 
 ## Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer
 
