@@ -13,8 +13,8 @@ class MidasNet_small(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, path=None, features=64, backbone="efficientnet_lite3", non_negative=True, exportable=True, channels_last=False, align_corners=True,
-        blocks={'expand': True}):
+    def __init__(self, activation='sigmoid', path=None, features=64, backbone="efficientnet_lite3", exportable=True, channels_last=False, align_corners=True,
+        blocks={'expand': True}, input_channels=3, output_channels=1, out_bias=0):
         """Init.
 
         Args:
@@ -27,6 +27,7 @@ class MidasNet_small(BaseModel):
         super(MidasNet_small, self).__init__()
 
         use_pretrained = False if path else True
+        self.out_chan = output_channels
                 
         self.channels_last = channels_last
         self.blocks = blocks
@@ -46,7 +47,7 @@ class MidasNet_small(BaseModel):
             features3=features*4
             features4=features*8
 
-        self.pretrained, self.scratch = _make_encoder(self.backbone, features, use_pretrained, groups=self.groups, expand=self.expand, exportable=exportable)
+        self.pretrained, self.scratch = _make_encoder(self.backbone, features, use_pretrained, in_chan=input_channels, groups=self.groups, expand=self.expand, exportable=exportable)
   
         self.scratch.activation = nn.ReLU(False)    
 
@@ -55,17 +56,23 @@ class MidasNet_small(BaseModel):
         self.scratch.refinenet2 = FeatureFusionBlock_custom(features2, self.scratch.activation, deconv=False, bn=False, expand=self.expand, align_corners=align_corners)
         self.scratch.refinenet1 = FeatureFusionBlock_custom(features1, self.scratch.activation, deconv=False, bn=False, align_corners=align_corners)
 
+        if activation == 'sigmoid':
+            output_act = nn.Sigmoid()
+        if activation == 'tanh':
+            output_act = nn.Tanh()
+        if activation == 'none':
+            output_act = nn.Identity()
         
         self.scratch.output_conv = nn.Sequential(
             nn.Conv2d(features, features//2, kernel_size=3, stride=1, padding=1, groups=self.groups),
             Interpolate(scale_factor=2, mode="bilinear"),
             nn.Conv2d(features//2, 32, kernel_size=3, stride=1, padding=1),
             self.scratch.activation,
-            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(True) if non_negative else nn.Identity(),
-            nn.Identity(),
+            nn.Conv2d(32, output_channels, kernel_size=1, stride=1, padding=0),
+            output_act
         )
-        
+        self.scratch.output_conv[-2].bias = torch.nn.Parameter(torch.ones(output_channels) * out_bias)
+
         if path:
             self.load(path)
 
@@ -102,7 +109,10 @@ class MidasNet_small(BaseModel):
         
         out = self.scratch.output_conv(path_1)
 
-        return torch.squeeze(out, dim=1)
+        if self.out_chan == 1:
+            return torch.squeeze(out, dim=1)
+        else:
+            return out
 
 
 

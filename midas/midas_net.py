@@ -13,34 +13,43 @@ class MidasNet(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, path=None, features=256, non_negative=True):
-        """Init.
+    def __init__(self, activation='sigmoid', path=None, features=256, input_channels=3, output_channels=1):
+        """Init. Changed by Chris to add input_channels and output_channels
 
         Args:
             path (str, optional): Path to saved model. Defaults to None.
             features (int, optional): Number of features. Defaults to 256.
             backbone (str, optional): Backbone network for encoder. Defaults to resnet50
+            input_channels (int, optional): number of input channels for the encoder
         """
         print("Loading weights: ", path)
 
         super(MidasNet, self).__init__()
 
         use_pretrained = False if path is None else True
+        self.out_chan = output_channels
 
-        self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=use_pretrained)
+        self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=use_pretrained, in_chan=input_channels)
 
         self.scratch.refinenet4 = FeatureFusionBlock(features)
         self.scratch.refinenet3 = FeatureFusionBlock(features)
         self.scratch.refinenet2 = FeatureFusionBlock(features)
         self.scratch.refinenet1 = FeatureFusionBlock(features)
 
+        if activation == 'sigmoid':
+            out_act = nn.Sigmoid()
+        elif activation == 'relu':
+            out_act = nn.ReLU()
+        else:
+            out_act = nn.Identity()
+
         self.scratch.output_conv = nn.Sequential(
             nn.Conv2d(features, 128, kernel_size=3, stride=1, padding=1),
             Interpolate(scale_factor=2, mode="bilinear"),
             nn.Conv2d(128, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(True),
-            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(True) if non_negative else nn.Identity(),
+            nn.Conv2d(32, output_channels, kernel_size=1, stride=1, padding=0),
+            out_act
         )
 
         if path:
@@ -73,4 +82,8 @@ class MidasNet(BaseModel):
 
         out = self.scratch.output_conv(path_1)
 
-        return torch.squeeze(out, dim=1)
+        # if self.out_chan == 1:
+        #     return torch.squeeze(out, dim=1)
+        # else:
+        #     return out
+        return out

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .backbones.beit import (
     _make_pretrained_beitl16_512,
@@ -29,8 +30,42 @@ from .backbones.vit import (
     forward_vit,
 )
 
+
+def _calc_same_pad(i, k, s, d):
+    """Added by Chris
+    """
+    return max((-(i // -s) - 1) * s + (k - 1) * d + 1 - i, 0)
+
+
+def conv2d_same(x, weight, bias=None, stride=(1, 1), padding=(0, 0), dilation=(1, 1), groups=1):
+    """Added by Chris
+    """
+    ih, iw = x.size()[-2:]
+    kh, kw = weight.size()[-2:]
+    pad_h = _calc_same_pad(ih, kh, stride[0], dilation[0])
+    pad_w = _calc_same_pad(iw, kw, stride[1], dilation[1])
+    x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
+    return F.conv2d(x, weight, bias, stride, (0, 0), dilation, groups)
+
+
+class Conv2dSame(nn.Conv2d):
+    """Added by Chris
+    Tensorflow like 'SAME' convolution wrapper for 2D convolutions
+    """
+    # pylint: disable=unused-argument
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True):
+        super(Conv2dSame, self).__init__(in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
+
+    def forward(self, x):
+        """Added by Chris
+        """
+        return conv2d_same(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+
+
 def _make_encoder(backbone, features, use_pretrained, groups=1, expand=False, exportable=True, hooks=None,
-                  use_vit_only=False, use_readout="ignore", in_features=[96, 256, 512, 1024]):
+                  use_vit_only=False, use_readout="ignore", in_features=[96, 256, 512, 1024], in_chan=3):
+    """Added by Chris: in_chan argument, which is used by _make_pretrained_resnext101_wsl and _make_pretrained_efficientnet_lite3
+    """
     if backbone == "beitl16_512":
         pretrained = _make_pretrained_beitl16_512(
             use_pretrained, hooks=hooks, use_readout=use_readout
@@ -118,10 +153,10 @@ def _make_encoder(backbone, features, use_pretrained, groups=1, expand=False, ex
             [96, 192, 384, 768], features, groups=groups, expand=expand
         )  # ViT-B/16 - 84.6% Top1 (backbone)
     elif backbone == "resnext101_wsl":
-        pretrained = _make_pretrained_resnext101_wsl(use_pretrained)
+        pretrained = _make_pretrained_resnext101_wsl(use_pretrained, in_chan=in_chan)
         scratch = _make_scratch([256, 512, 1024, 2048], features, groups=groups, expand=expand)  # efficientnet_lite3
     elif backbone == "efficientnet_lite3":
-        pretrained = _make_pretrained_efficientnet_lite3(use_pretrained, exportable=exportable)
+        pretrained = _make_pretrained_efficientnet_lite3(use_pretrained, exportable=exportable, in_chan=in_chan)
         scratch = _make_scratch([32, 48, 136, 384], features, groups=groups, expand=expand)  # efficientnet_lite3
     else:
         print(f"Backbone '{backbone}' not implemented")
@@ -163,13 +198,19 @@ def _make_scratch(in_shape, out_shape, groups=1, expand=False):
     return scratch
 
 
-def _make_pretrained_efficientnet_lite3(use_pretrained, exportable=False):
+def _make_pretrained_efficientnet_lite3(use_pretrained, exportable=False, in_chan=3):
+    """Modified by Chris to add in_chan
+    """
     efficientnet = torch.hub.load(
         "rwightman/gen-efficientnet-pytorch",
         "tf_efficientnet_lite3",
         pretrained=use_pretrained,
         exportable=exportable
     )
+
+    if in_chan != 3:
+        efficientnet.conv_stem = Conv2dSame(in_chan, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
+
     return _make_efficientnet_backbone(efficientnet)
 
 
@@ -199,8 +240,12 @@ def _make_resnet_backbone(resnet):
     return pretrained
 
 
-def _make_pretrained_resnext101_wsl(use_pretrained):
+def _make_pretrained_resnext101_wsl(use_pretrained, in_chan=3):
+    """Modified by Chris to take in_chan
+    """
     resnet = torch.hub.load("facebookresearch/WSL-Images", "resnext101_32x8d_wsl")
+    if in_chan != 3:
+        resnet.conv1 = torch.nn.Conv2d(in_chan, 64, 7, 2, 3, bias=False)
     return _make_resnet_backbone(resnet)
 
 
