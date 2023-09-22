@@ -4,13 +4,6 @@
 * install altered_midas dependencies with `pip install -r requirements.txt`
 * run `python setup.py install` (or `python setup.py develop` for developer mode) to install the scripts in MiDaS/altered_midas as a library called "altered_midas"
 
-#### to use this in code:
-We created a script in altered_midas called "model_util" which loads `MidasNet` as the ordinal model and `MidasNet_small` as the real model and returns them in a dictionary. To use this function in a python script, simply:
-* install the altered_midas package
-* in a python script, `from altered_midas.model_util import load_models as load_midas_models`
-* in the python script, call load_models: `models = load_midas_models("path/to/ord/weights", "path/to/mrg_weights")`. the returned variable `models` is a dictionary with the following structure: `{"ordinal_model": altered_midas.midas_net.MidasNet, "real_model": altered_midas.midas_net_custom.MidasNet_small}`
-
-
 ## Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer
 
 This repository contains code to compute depth from a single image. It accompanies our [paper](https://arxiv.org/abs/1907.01341v3):
