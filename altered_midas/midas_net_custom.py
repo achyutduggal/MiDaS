@@ -22,8 +22,6 @@ class MidasNet_small(BaseModel):
             features (int, optional): Number of features. Defaults to 256.
             backbone (str, optional): Backbone network for encoder. Defaults to resnet50
         """
-        print("Loading weights: ", path)
-
         super(MidasNet_small, self).__init__()
 
         self.out_chan = output_channels
