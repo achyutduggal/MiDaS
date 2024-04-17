@@ -13,7 +13,7 @@ class MidasNet(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, activation='sigmoid', path=None, features=256, input_channels=3, output_channels=1):
+    def __init__(self, activation='sigmoid', pretrained=False, features=256, input_channels=3, output_channels=1):
         """Init. Changed by Chris to add input_channels and output_channels
 
         Args:
@@ -22,14 +22,12 @@ class MidasNet(BaseModel):
             backbone (str, optional): Backbone network for encoder. Defaults to resnet50
             input_channels (int, optional): number of input channels for the encoder
         """
-        print("Loading weights: ", path)
 
         super(MidasNet, self).__init__()
 
-        use_pretrained = False if path is None else True
         self.out_chan = output_channels
 
-        self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=use_pretrained, in_chan=input_channels)
+        self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=pretrained, in_chan=input_channels)
 
         self.scratch.refinenet4 = FeatureFusionBlock(features)
         self.scratch.refinenet3 = FeatureFusionBlock(features)
@@ -51,9 +49,6 @@ class MidasNet(BaseModel):
             nn.Conv2d(32, output_channels, kernel_size=1, stride=1, padding=0),
             out_act
         )
-
-        if path:
-            self.load(path)
 
     def forward(self, x):
         """Forward pass.

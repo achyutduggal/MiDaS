@@ -153,8 +153,9 @@ class DPTDepthModel(DPT):
             nn.Conv2d(head_features_1 // 2, head_features_2, kernel_size=3, stride=1, padding=1),
             nn.ReLU(True),
             nn.Conv2d(head_features_2, 1, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(True) if non_negative else nn.Identity(),
-            nn.Identity(),
+            # nn.ReLU(True) if non_negative else nn.Identity(),
+            nn.Sigmoid()
+            # nn.Identity(),
         )
 
         super().__init__(head, **kwargs)
@@ -163,4 +164,4 @@ class DPTDepthModel(DPT):
            self.load(path)
 
     def forward(self, x):
-        return super().forward(x).squeeze(dim=1)
+        return super().forward(x)# .squeeze(dim=1)

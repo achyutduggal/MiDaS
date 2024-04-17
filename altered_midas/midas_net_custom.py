@@ -13,7 +13,7 @@ class MidasNet_small(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, activation='sigmoid', path=None, features=64, backbone="efficientnet_lite3", exportable=True, channels_last=False, align_corners=True,
+    def __init__(self, activation='sigmoid', pretrained=False, features=64, backbone="efficientnet_lite3", exportable=True, channels_last=False, align_corners=True,
         blocks={'expand': True}, input_channels=3, output_channels=1, out_bias=0):
         """Init.
 
@@ -22,11 +22,8 @@ class MidasNet_small(BaseModel):
             features (int, optional): Number of features. Defaults to 256.
             backbone (str, optional): Backbone network for encoder. Defaults to resnet50
         """
-        print("Loading weights: ", path)
-
         super(MidasNet_small, self).__init__()
 
-        use_pretrained = False if path else True
         self.out_chan = output_channels
                 
         self.channels_last = channels_last
@@ -47,7 +44,7 @@ class MidasNet_small(BaseModel):
             features3=features*4
             features4=features*8
 
-        self.pretrained, self.scratch = _make_encoder(self.backbone, features, use_pretrained, in_chan=input_channels, groups=self.groups, expand=self.expand, exportable=exportable)
+        self.pretrained, self.scratch = _make_encoder(self.backbone, features, pretrained, in_chan=input_channels, groups=self.groups, expand=self.expand, exportable=exportable)
   
         self.scratch.activation = nn.ReLU(False)    
 
@@ -72,9 +69,6 @@ class MidasNet_small(BaseModel):
             output_act
         )
         self.scratch.output_conv[-2].bias = torch.nn.Parameter(torch.ones(output_channels) * out_bias)
-
-        if path:
-            self.load(path)
 
 
     def forward(self, x):
