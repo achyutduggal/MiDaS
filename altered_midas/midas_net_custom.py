@@ -109,10 +109,11 @@ class MidasNet_small(BaseModel):
         
         out = self.scratch.output_conv(path_1)
 
-        if self.out_chan == 1:
-            return torch.squeeze(out, dim=1)
-        else:
-            return out
+        # if self.out_chan == 1:
+        #     return torch.squeeze(out, dim=1)
+        # else:
+        #     return out
+        return out
 
 
 
