@@ -63,7 +63,7 @@ class Conv2dSame(nn.Conv2d):
 
 
 def _make_encoder(backbone, features, use_pretrained, groups=1, expand=False, exportable=True, hooks=None,
-                  use_vit_only=False, use_readout="ignore", in_features=[96, 256, 512, 1024], in_chan=3):
+                  use_vit_only=False, use_readout="ignore", in_features=[96, 256, 512, 1024], in_chan=3, group_width=8):
     """Added by Chris: in_chan argument, which is used by _make_pretrained_resnext101_wsl and _make_pretrained_efficientnet_lite3
     """
     if backbone == "beitl16_512":
@@ -153,8 +153,8 @@ def _make_encoder(backbone, features, use_pretrained, groups=1, expand=False, ex
             [96, 192, 384, 768], features, groups=groups, expand=expand
         )  # ViT-B/16 - 84.6% Top1 (backbone)
     elif backbone == "resnext101_wsl":
-        pretrained = _make_pretrained_resnext101_wsl(use_pretrained, in_chan=in_chan)
-        scratch = _make_scratch([256, 512, 1024, 2048], features, groups=groups, expand=expand)  # efficientnet_lite3
+        pretrained = _make_pretrained_resnext101_wsl(use_pretrained, in_chan=in_chan, group_width=group_width)
+        scratch = _make_scratch([256, 512, 1024, 2048], features, groups=groups, expand=expand)
     elif backbone == "efficientnet_lite3":
         pretrained = _make_pretrained_efficientnet_lite3(use_pretrained, exportable=exportable, in_chan=in_chan)
         scratch = _make_scratch([32, 48, 136, 384], features, groups=groups, expand=expand)  # efficientnet_lite3
@@ -175,8 +175,6 @@ def _make_scratch(in_shape, out_shape, groups=1, expand=False):
         out_shape4 = out_shape
 
     if expand:
-        out_shape1 = out_shape
-        out_shape2 = out_shape*2
         out_shape3 = out_shape*4
         if len(in_shape) >= 4:
             out_shape4 = out_shape*8
@@ -240,10 +238,10 @@ def _make_resnet_backbone(resnet):
     return pretrained
 
 
-def _make_pretrained_resnext101_wsl(use_pretrained, in_chan=3):
+def _make_pretrained_resnext101_wsl(use_pretrained, in_chan=3, group_width=8):
     """Modified by Chris to take in_chan
     """
-    resnet = torch.hub.load("facebookresearch/WSL-Images", "resnext101_32x8d_wsl")
+    resnet = torch.hub.load("facebookresearch/WSL-Images", f"resnext101_32x{group_width}d_wsl")
     if in_chan != 3:
         resnet.conv1 = torch.nn.Conv2d(in_chan, 64, 7, 2, 3, bias=False)
     return _make_resnet_backbone(resnet)
