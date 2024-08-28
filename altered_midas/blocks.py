@@ -175,6 +175,8 @@ def _make_scratch(in_shape, out_shape, groups=1, expand=False):
         out_shape4 = out_shape
 
     if expand:
+        out_shape1 = out_shape
+        out_shape2 = out_shape*2
         out_shape3 = out_shape*4
         if len(in_shape) >= 4:
             out_shape4 = out_shape*8
