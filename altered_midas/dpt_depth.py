@@ -13,6 +13,7 @@ from .blocks import (
 )
 from .backbones.levit import stem_b4_transpose
 from timm.models.layers import get_act_layer
+from timm.layers import StdConv2d
 
 
 def _make_fusion_block(features, use_bn, size = None):
@@ -140,7 +141,7 @@ class DPT(BaseModel):
 
 
 class DPTDepthModel(DPT):
-    def __init__(self, path=None, non_negative=True, **kwargs):
+    def __init__(self, in_chan=3, out_chan=1, path=None, non_negative=True, **kwargs):
         features = kwargs["features"] if "features" in kwargs else 256
         head_features_1 = kwargs["head_features_1"] if "head_features_1" in kwargs else features
         head_features_2 = kwargs["head_features_2"] if "head_features_2" in kwargs else 32
@@ -152,13 +153,15 @@ class DPTDepthModel(DPT):
             Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
             nn.Conv2d(head_features_1 // 2, head_features_2, kernel_size=3, stride=1, padding=1),
             nn.ReLU(True),
-            nn.Conv2d(head_features_2, 1, kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(head_features_2, out_chan, kernel_size=1, stride=1, padding=0),
             # nn.ReLU(True) if non_negative else nn.Identity(),
             nn.Sigmoid()
             # nn.Identity(),
         )
 
         super().__init__(head, **kwargs)
+
+        self.pretrained.model.patch_embed.backbone.stem.conv = StdConv2d(in_chan, 64, kernel_size=7, stride=2)
 
         if path is not None:
            self.load(path)
