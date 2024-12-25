@@ -13,7 +13,7 @@ class MidasNet(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, activation='sigmoid', pretrained=False, features=256, input_channels=3, output_channels=1, group_width=8):
+    def __init__(self, activation='sigmoid', pretrained=False, features=256, input_channels=3, output_channels=1, group_width=8, last_residual=False):
         """Init. Changed by Chris to add input_channels and output_channels
 
         Args:
@@ -26,6 +26,7 @@ class MidasNet(BaseModel):
         super(MidasNet, self).__init__()
 
         self.out_chan = output_channels
+        self.last_res = last_residual
 
         self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=pretrained, in_chan=input_channels, group_width=group_width)
 
@@ -41,14 +42,16 @@ class MidasNet(BaseModel):
         else:
             out_act = nn.Identity()
 
-        self.scratch.output_conv = nn.Sequential(
+
+        res_dim = 128 + (input_channels if last_residual else 0)
+        self.scratch.output_conv = nn.ModuleList([
             nn.Conv2d(features, 128, kernel_size=3, stride=1, padding=1),
             Interpolate(scale_factor=2, mode="bilinear"),
-            nn.Conv2d(128, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(res_dim, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(True),
             nn.Conv2d(32, output_channels, kernel_size=1, stride=1, padding=0),
             out_act
-        )
+        ])
 
     def forward(self, x):
         """Forward pass.
@@ -75,7 +78,19 @@ class MidasNet(BaseModel):
         path_2 = self.scratch.refinenet2(path_3, layer_2_rn)
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
 
-        out = self.scratch.output_conv(path_1)
+        # out = self.scratch.output_conv(path_1)
+
+        out = self.scratch.output_conv[0](path_1)
+        out = self.scratch.output_conv[1](out)
+
+        if self.last_res:
+            out = torch.cat((out, x), dim=1)
+
+        out = self.scratch.output_conv[2](out)
+        out = self.scratch.output_conv[3](out)
+        out = self.scratch.output_conv[4](out)
+        out = self.scratch.output_conv[5](out)
+
 
         # if self.out_chan == 1:
         #     return torch.squeeze(out, dim=1)
