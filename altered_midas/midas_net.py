@@ -13,7 +13,7 @@ class MidasNet(BaseModel):
     """Network for monocular depth estimation.
     """
 
-    def __init__(self, activation='sigmoid', pretrained=False, features=256, input_channels=3, output_channels=1, group_width=8, last_residual=False):
+    def __init__(self, activation='sigmoid', pretrained=False, features=256, input_channels=3, output_channels=1, group_width=8, last_residual=False, aa=False):
         """Init. Changed by Chris to add input_channels and output_channels
 
         Args:
@@ -28,7 +28,13 @@ class MidasNet(BaseModel):
         self.out_chan = output_channels
         self.last_res = last_residual
 
-        self.pretrained, self.scratch = _make_encoder(backbone="resnext101_wsl", features=features, use_pretrained=pretrained, in_chan=input_channels, group_width=group_width)
+        self.pretrained, self.scratch = _make_encoder(
+            backbone="resnext101_wsl", 
+            features=features, 
+            use_pretrained=pretrained, 
+            in_chan=input_channels, 
+            group_width=group_width,
+            aa=aa)
 
         self.scratch.refinenet4 = FeatureFusionBlock(features)
         self.scratch.refinenet3 = FeatureFusionBlock(features)
@@ -41,7 +47,6 @@ class MidasNet(BaseModel):
             out_act = nn.ReLU()
         else:
             out_act = nn.Identity()
-
 
         res_dim = 128 + (input_channels if last_residual else 0)
         self.scratch.output_conv = nn.ModuleList([
