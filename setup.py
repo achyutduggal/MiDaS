@@ -14,6 +14,7 @@ setuptools.setup(
         'opencv-python>=4.8.0.76',
         'torch>=2.0.1',
         'torchvision>=0.15.2',
-        'timm>=0.6.12'
+        'timm>=0.6.12',
+        'antialiased_cnns'
     ]
 )
