@@ -10,8 +10,8 @@ setuptools.setup(
     license="",
     python_requires=">3.6",
     install_requires=[
-        'numpy>=1.23.5',
-        'opencv-python>=4.8.0.76',
+        'numpy==1.26.4',
+        'opencv-python==4.11.0.86',
         'torch>=2.0.1',
         'torchvision>=0.15.2',
         'timm>=0.6.12',
