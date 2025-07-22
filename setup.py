@@ -18,6 +18,7 @@ setuptools.setup(
         # PyTorch ecosystem
         'torch>=2.0.0,<2.1.0',
         'torchvision>=0.15.0,<0.16.0',
+        'torchaudio==2.0.2',
         
         # Model libraries
         'timm>=0.6.12,<0.7.0',
