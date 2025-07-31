@@ -14,13 +14,13 @@ setuptools.setup(
         'numpy==1.26.4',
         'opencv-python==4.11.0.86',
         
-        # PyTorch ecosystem - CUDA 12.4 compatible versions (exact matching)
-        'torch==2.4.1',
-        'torchvision==0.19.1',
-        'torchaudio==2.4.1',
+        # PyTorch ecosystem - CUDA 12.1 compatible versions
+        'torch==2.3.1',
+        'torchvision==0.18.1',
+        'torchaudio==2.3.1',
         
-        # Model libraries - updated for compatibility
-        'timm>=0.9.16,<1.0.0',  # Updated for PyTorch 2.4 compatibility
+        # Model libraries
+        'timm>=0.9.12,<1.0.0',
         'antialiased_cnns>=0.3,<0.4'
     ]
 )
