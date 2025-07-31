@@ -1,5 +1,4 @@
 import setuptools
-
 setuptools.setup(
     name="altered_midas",
     version="0.0.1",
@@ -15,13 +14,13 @@ setuptools.setup(
         'numpy==1.26.4',
         'opencv-python==4.11.0.86',
         
-        # PyTorch ecosystem
-        'torch>=2.0.0,<2.1.0',
-        'torchvision>=0.15.0,<0.16.0',
-        'torchaudio==2.0.2',
+        # PyTorch ecosystem - CUDA 12.4 compatible versions
+        'torch>=2.4.0,<2.5.0',
+        'torchvision>=0.19.0,<0.20.0',
+        'torchaudio>=2.4.0,<2.5.0',
         
-        # Model libraries
-        'timm>=0.6.12,<0.7.0',
+        # Model libraries - updated for compatibility
+        'timm>=0.9.16,<1.0.0',  # Updated for PyTorch 2.4 compatibility
         'antialiased_cnns>=0.3,<0.4'
     ]
 )
