@@ -1,6 +1,7 @@
-torch==2.0.1
-torchvision==0.15.2
+torch==2.4.0
+torchvision==0.19.0
+torchaudio==2.4.0
 numpy==1.26.4
 opencv-python==4.11.0.86
 imutils==0.5.4
-timm==0.6.12
+timm==0.9.16
